@@ -1,21 +1,56 @@
-import { User, CreditCard, MessageCircle, Clock, LogOut, ChevronRight, AlertCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { User, CreditCard, MessageCircle, Clock, LogOut, ChevronRight, AlertCircle, Home } from 'lucide-react';
 import { useStore } from '@/store';
 
 export function Dashboard() {
-  const { user, isAuthenticated, logout, setCurrentPage, messages } = useStore();
+  const { user, isAuthenticated, logout, setCurrentPage, messages, toggleChat } = useStore();
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!isAuthenticated || !user) {
+  // Petit délai pour laisser le store se synchroniser
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Écran de chargement
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
+          <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Non connecté
+  if (!isAuthenticated || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <User className="w-10 h-10 text-gray-400" />
+          </div>
           <h2 className="text-2xl font-bold mb-4">Connectez-vous</h2>
-          <p className="text-gray-600 mb-6">Vous devez être connecté pour accéder à votre compte</p>
-          <button
-            onClick={() => setCurrentPage('login')}
-            className="bg-black text-white px-6 py-3 rounded-xl font-medium"
-          >
-            Se connecter
-          </button>
+          <p className="text-gray-600 mb-6">Vous devez être connecté pour accéder à votre tableau de bord</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => setCurrentPage('login')}
+              className="w-full bg-black text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+            >
+              Se connecter
+            </button>
+            <button
+              onClick={() => setCurrentPage('home')}
+              className="w-full flex items-center justify-center gap-2 text-gray-600 px-6 py-3 rounded-xl font-medium hover:bg-gray-100 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              Retour à l'accueil
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -26,6 +61,11 @@ export function Dashboard() {
     : 0;
 
   const userMessages = messages.filter(m => !m.isAdmin);
+
+  const handleLogout = () => {
+    logout();
+    setCurrentPage('home');
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -52,8 +92,9 @@ export function Dashboard() {
                 </div>
               </div>
               <button
-                onClick={logout}
-                className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors"
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-gray-500 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-red-50"
+                title="Se déconnecter"
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -97,7 +138,7 @@ export function Dashboard() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center">
-                    <User className="w-5 h-5 text-white" />
+                    <Home className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-left">
                     <p className="font-medium">Voir les chambres</p>
@@ -117,11 +158,31 @@ export function Dashboard() {
                   </div>
                   <div className="text-left">
                     <p className="font-medium">Abonnement</p>
-                    <p className="text-sm text-gray-500">Gérer votre abonnement</p>
+                    <p className="text-sm text-gray-500">
+                      {user.subscriptionActive ? 'Renouveler' : 'Souscrire à un abonnement'}
+                    </p>
                   </div>
                 </div>
                 <ChevronRight className="w-5 h-5 text-gray-400" />
               </button>
+
+              {user.subscriptionActive && (
+                <button
+                  onClick={toggleChat}
+                  className="w-full flex items-center justify-between p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors border border-green-200"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                      <MessageCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-medium text-green-700">Contacter le support</p>
+                      <p className="text-sm text-green-600">Discutez avec nous pour organiser une visite</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-green-400" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -140,15 +201,23 @@ export function Dashboard() {
               </div>
               {user.subscriptionActive ? (
                 <button
-                  onClick={() => useStore.getState().toggleChat()}
+                  onClick={toggleChat}
                   className="w-full bg-black text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
                 >
                   Ouvrir le chat
                 </button>
               ) : (
-                <p className="text-sm text-gray-500 text-center">
-                  Abonnez-vous pour accéder au chat
-                </p>
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-2">
+                    Abonnez-vous pour accéder au chat
+                  </p>
+                  <button
+                    onClick={() => setCurrentPage('subscription')}
+                    className="text-sm font-medium text-black hover:underline"
+                  >
+                    Souscrire →
+                  </button>
+                </div>
               )}
             </div>
 
@@ -162,6 +231,7 @@ export function Dashboard() {
                   <p className="font-semibold">Membre depuis</p>
                   <p className="text-sm text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
                       month: 'long',
                       year: 'numeric'
                     })}
@@ -180,7 +250,7 @@ export function Dashboard() {
                     Contactez-nous sur WhatsApp pour toute question.
                   </p>
                   <a 
-                    href="https://wa.me/22890000000" 
+                    href="https://wa.me/22890000000?text=Bonjour%20LOMAL%2C%20j%27ai%20besoin%20d%27aide" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-block mt-3 text-sm font-medium text-black hover:underline"
@@ -189,6 +259,22 @@ export function Dashboard() {
                   </a>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Box */}
+        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">💡</div>
+            <div>
+              <h3 className="font-semibold text-blue-800">Comment ça marche ?</h3>
+              <ol className="text-sm text-blue-700 mt-2 space-y-1">
+                <li>1. Parcourez les chambres disponibles</li>
+                <li>2. Abonnez-vous pour 1000 FCFA/semaine</li>
+                <li>3. Contactez-nous via le chat pour organiser une visite</li>
+                <li>4. Nous vous accompagnons jusqu'au closing avec le propriétaire</li>
+              </ol>
             </div>
           </div>
         </div>

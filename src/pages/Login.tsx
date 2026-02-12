@@ -1,13 +1,13 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Phone, ArrowRight, Shield, Check, AlertCircle, User, LogIn, UserPlus } from 'lucide-react';
 import { useStore } from '@/store';
 import { supabase } from '@/lib/supabase';
 
 type AuthMode = 'login' | 'register';
-type Step = 'form' | 'otp' | 'loading';
+type Step = 'form' | 'otp' | 'success';
 
 export function Login() {
-  const { setCurrentPage } = useStore();
+  const { setCurrentPage, login } = useStore();
   
   // Mode: connexion ou inscription
   const [mode, setMode] = useState<AuthMode>('login');
@@ -29,6 +29,28 @@ export function Login() {
     }
     return `+228${cleaned}`;
   };
+
+  // Navigation sécurisée vers le dashboard
+  const navigateToDashboard = useCallback((userData: {
+    id: string;
+    name: string;
+    phone: string;
+    subscriptionActive: boolean;
+    subscriptionExpiry: Date | null;
+    createdAt: Date;
+    isAdmin: boolean;
+  }) => {
+    // Utiliser la méthode login du store
+    login(userData);
+    
+    // Afficher le succès avant de naviguer
+    setStep('success');
+    
+    // Navigation après un court délai pour laisser le store se mettre à jour
+    setTimeout(() => {
+      setCurrentPage('dashboard');
+    }, 1500);
+  }, [login, setCurrentPage]);
 
   // ========================================
   // CONNEXION - Utilisateur existant
@@ -69,20 +91,16 @@ export function Login() {
       }
 
       // Connexion réussie !
-      useStore.setState({
-        isAuthenticated: true,
-        user: {
-          id: existingUser.id,
-          name: existingUser.name,
-          phone: existingUser.phone,
-          subscriptionActive: existingUser.subscription_active || false,
-          subscriptionExpiry: existingUser.subscription_expiry ? new Date(existingUser.subscription_expiry) : null,
-          createdAt: new Date(existingUser.created_at),
-          isAdmin: existingUser.is_admin || false,
-        },
+      navigateToDashboard({
+        id: existingUser.id,
+        name: existingUser.name,
+        phone: existingUser.phone,
+        subscriptionActive: existingUser.subscription_active || false,
+        subscriptionExpiry: existingUser.subscription_expiry ? new Date(existingUser.subscription_expiry) : null,
+        createdAt: new Date(existingUser.created_at),
+        isAdmin: existingUser.is_admin || false,
       });
 
-      setCurrentPage('dashboard');
     } catch (err) {
       console.error('Erreur connexion:', err);
       // Mode démo si Supabase non configuré
@@ -96,21 +114,15 @@ export function Login() {
   const loginDemoMode = async () => {
     const formattedPhone = formatPhone(phone);
     
-    // Simuler un utilisateur existant
-    useStore.setState({
-      isAuthenticated: true,
-      user: {
-        id: crypto.randomUUID(),
-        name: name,
-        phone: formattedPhone,
-        subscriptionActive: false,
-        subscriptionExpiry: null,
-        createdAt: new Date(),
-        isAdmin: false,
-      },
+    navigateToDashboard({
+      id: crypto.randomUUID(),
+      name: name,
+      phone: formattedPhone,
+      subscriptionActive: false,
+      subscriptionExpiry: null,
+      createdAt: new Date(),
+      isAdmin: false,
     });
-
-    setCurrentPage('dashboard');
   };
 
   // ========================================
@@ -220,21 +232,16 @@ export function Login() {
         // Créer le profil utilisateur
         await createUserProfile(data.user.id, name, fullPhone);
         
-        // Mettre à jour le store
-        useStore.setState({
-          isAuthenticated: true,
-          user: {
-            id: data.user.id,
-            name: name,
-            phone: fullPhone,
-            subscriptionActive: false,
-            subscriptionExpiry: null,
-            createdAt: new Date(),
-            isAdmin: false,
-          },
+        // Navigation vers dashboard
+        navigateToDashboard({
+          id: data.user.id,
+          name: name,
+          phone: fullPhone,
+          subscriptionActive: false,
+          subscriptionExpiry: null,
+          createdAt: new Date(),
+          isAdmin: false,
         });
-        
-        setCurrentPage('dashboard');
       }
     } catch (err) {
       console.error('Erreur vérification:', err);
@@ -279,22 +286,15 @@ export function Login() {
       console.log('Mode démo local uniquement');
     }
 
-    // Mettre à jour le store local
-    useStore.setState({
-      isAuthenticated: true,
-      user: {
-        id: newUserId,
-        name: name,
-        phone: fullPhone,
-        subscriptionActive: false,
-        subscriptionExpiry: null,
-        createdAt: new Date(),
-        isAdmin: false,
-      },
+    navigateToDashboard({
+      id: newUserId,
+      name: name,
+      phone: fullPhone,
+      subscriptionActive: false,
+      subscriptionExpiry: null,
+      createdAt: new Date(),
+      isAdmin: false,
     });
-
-    setCurrentPage('dashboard');
-    setLoading(false);
   };
 
   // Reset form quand on change de mode
@@ -304,6 +304,33 @@ export function Login() {
     setError('');
     setOtp('');
   };
+
+  // ========================================
+  // ÉCRAN DE SUCCÈS
+  // ========================================
+  if (step === 'success') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <div className="bg-white rounded-2xl shadow-sm p-8">
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-10 h-10 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">Connexion réussie !</h1>
+            <p className="text-gray-600 mb-4">
+              Bienvenue, <strong>{name}</strong>
+            </p>
+            <p className="text-sm text-gray-500">
+              Redirection vers votre tableau de bord...
+            </p>
+            <div className="mt-6">
+              <div className="w-8 h-8 border-3 border-black border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
