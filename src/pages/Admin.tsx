@@ -3,13 +3,15 @@ import {
   LayoutDashboard, Home, Users, CreditCard, MessageCircle, 
   TrendingUp, Plus, Edit, Trash2, Eye, EyeOff, X,
   DollarSign, Calendar, BarChart3, ArrowUpRight, ArrowDownRight,
-  Send, Upload, Image as ImageIcon, Phone
+  Send, Upload, Image as ImageIcon, Phone, Settings, LogOut,
+  Facebook, Instagram, Save, RotateCcw
 } from 'lucide-react';
 import { useStore } from '@/store';
+import { useSiteConfig } from '@/store/siteConfig';
 import { supabase } from '@/lib/supabase';
 import type { Room, Message } from '@/types';
 
-type AdminTab = 'dashboard' | 'rooms' | 'users' | 'payments' | 'commissions' | 'messages';
+type AdminTab = 'dashboard' | 'rooms' | 'users' | 'payments' | 'commissions' | 'messages' | 'settings';
 
 export function Admin() {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
@@ -58,6 +60,7 @@ export function Admin() {
     { id: 'payments', label: 'Paiements', icon: CreditCard },
     { id: 'commissions', label: 'Commissions', icon: DollarSign },
     { id: 'messages', label: 'Messages', icon: MessageCircle },
+    { id: 'settings', label: 'Paramètres', icon: Settings },
   ];
 
   return (
@@ -74,12 +77,25 @@ export function Admin() {
               <p className="text-xs text-gray-400">Administration</p>
             </div>
           </div>
-          <button 
-            onClick={() => useStore.getState().setCurrentPage('home')}
-            className="text-sm text-gray-400 hover:text-white"
-          >
-            ← Retour au site
-          </button>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => useStore.getState().setCurrentPage('home')}
+              className="text-sm text-gray-400 hover:text-white"
+            >
+              ← Retour au site
+            </button>
+            <button 
+              onClick={() => {
+                sessionStorage.removeItem('lomal_admin_auth');
+                sessionStorage.removeItem('lomal_admin_time');
+                useStore.getState().setCurrentPage('home');
+              }}
+              className="flex items-center gap-2 text-sm text-red-400 hover:text-red-300"
+            >
+              <LogOut className="w-4 h-4" />
+              Déconnexion
+            </button>
+          </div>
         </div>
       </div>
 
@@ -449,6 +465,11 @@ export function Admin() {
         {/* Messages Tab - AMÉLIORÉ */}
         {activeTab === 'messages' && (
           <AdminMessages messages={messages} addMessage={addMessage} />
+        )}
+
+        {/* Settings Tab - Configuration du site */}
+        {activeTab === 'settings' && (
+          <AdminSettings />
         )}
 
         {/* Room Modal */}
@@ -984,6 +1005,249 @@ function RoomModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Composant Paramètres - Configuration du site (Contacts + Réseaux sociaux)
+function AdminSettings() {
+  const { config, updateConfig, resetConfig } = useSiteConfig();
+  const [formData, setFormData] = useState(config);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    updateConfig(formData);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleReset = () => {
+    if (confirm('Voulez-vous vraiment réinitialiser tous les paramètres ?')) {
+      resetConfig();
+      setFormData({
+        phone: '+228 90 00 00 00',
+        email: 'contact@lomal-immobilier.com',
+        address: 'Lomé, Togo',
+        whatsapp: '22890000000',
+        facebook: 'https://facebook.com/lomalimmobilier',
+        instagram: 'https://instagram.com/lomalimmobilier',
+        tiktok: 'https://tiktok.com/@lomalimmobilier',
+        twitter: 'https://twitter.com/lomalimmobilier',
+        youtube: '',
+        linkedin: '',
+        heroTitle: 'Trouvez votre chambre idéale à Lomé',
+        heroSubtitle: 'LOMAL IMMOBILIER vous accompagne dans votre recherche de logement.',
+        aboutText: 'Votre partenaire de confiance pour trouver une chambre à Lomé.',
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold">Paramètres du site</h2>
+        <div className="flex gap-3">
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Réinitialiser
+          </button>
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+          >
+            <Save className="w-4 h-4" />
+            {saved ? '✓ Enregistré !' : 'Enregistrer'}
+          </button>
+        </div>
+      </div>
+
+      {saved && (
+        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl">
+          ✅ Les modifications ont été enregistrées avec succès !
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Informations de contact */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Phone className="w-5 h-5" />
+            Informations de contact
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <input
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="+228 90 00 00 00"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="contact@lomal-immobilier.com"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <input
+                type="text"
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Lomé, Togo"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp (sans +)</label>
+              <input
+                type="text"
+                value={formData.whatsapp}
+                onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                placeholder="22890000000"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+              <p className="text-xs text-gray-500 mt-1">Numéro complet sans espaces ni +</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Réseaux sociaux */}
+        <div className="bg-white rounded-xl p-6 shadow-sm">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Instagram className="w-5 h-5" />
+            Réseaux sociaux
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <Facebook className="w-4 h-4 text-blue-600" /> Facebook
+              </label>
+              <input
+                type="url"
+                value={formData.facebook}
+                onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                placeholder="https://facebook.com/..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                <Instagram className="w-4 h-4 text-pink-600" /> Instagram
+              </label>
+              <input
+                type="url"
+                value={formData.instagram}
+                onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                placeholder="https://instagram.com/..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">TikTok</label>
+              <input
+                type="url"
+                value={formData.tiktok}
+                onChange={(e) => setFormData({ ...formData, tiktok: e.target.value })}
+                placeholder="https://tiktok.com/@..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Twitter / X</label>
+              <input
+                type="url"
+                value={formData.twitter}
+                onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                placeholder="https://twitter.com/..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">YouTube</label>
+              <input
+                type="url"
+                value={formData.youtube}
+                onChange={(e) => setFormData({ ...formData, youtube: e.target.value })}
+                placeholder="https://youtube.com/..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Textes du site */}
+        <div className="bg-white rounded-xl p-6 shadow-sm md:col-span-2">
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Edit className="w-5 h-5" />
+            Textes du site
+          </h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Titre principal (Hero)</label>
+              <input
+                type="text"
+                value={formData.heroTitle}
+                onChange={(e) => setFormData({ ...formData, heroTitle: e.target.value })}
+                placeholder="Trouvez votre chambre idéale à Lomé"
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Sous-titre (Hero)</label>
+              <textarea
+                value={formData.heroSubtitle}
+                onChange={(e) => setFormData({ ...formData, heroSubtitle: e.target.value })}
+                rows={2}
+                placeholder="LOMAL IMMOBILIER vous accompagne..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Texte À propos (Footer)</label>
+              <textarea
+                value={formData.aboutText}
+                onChange={(e) => setFormData({ ...formData, aboutText: e.target.value })}
+                rows={2}
+                placeholder="Votre partenaire de confiance..."
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Aperçu */}
+      <div className="bg-gray-50 rounded-xl p-6">
+        <h3 className="font-bold mb-4">📱 Aperçu des liens</h3>
+        <div className="flex flex-wrap gap-4">
+          {formData.facebook && (
+            <a href={formData.facebook} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">
+              <Facebook className="w-4 h-4" /> Facebook
+            </a>
+          )}
+          {formData.instagram && (
+            <a href={formData.instagram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-pink-100 text-pink-700 px-3 py-2 rounded-lg text-sm">
+              <Instagram className="w-4 h-4" /> Instagram
+            </a>
+          )}
+          {formData.whatsapp && (
+            <a href={`https://wa.me/${formData.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm">
+              <MessageCircle className="w-4 h-4" /> WhatsApp
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
