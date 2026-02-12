@@ -1,0 +1,14 @@
+# Render Blueprint - LOMAL IMMOBILIER
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: lomal-immobilier
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: https://ikywolbkmlpuzkkifyti.supabase.co
+      - key: VITE_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlreXdvbGJrbWxwdXpra2lmeXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MTI1NzksImV4cCI6MjA4NjQ4ODU3OX0.1HrCmva2F9MSP7-PKNpZ-LqRhHIC1VDL5WLhnYjXoYQ
